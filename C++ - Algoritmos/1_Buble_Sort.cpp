@@ -98,7 +98,7 @@ void bubbleSort(int arr[], int n)
             swap(&arr[j], &arr[j+1]);
 }
  
-/* funcon apra imprimir el arreglo*/
+/* funcon para imprimir el arreglo*/
 void printArray(int arr[], int size)
 {
     int i;
