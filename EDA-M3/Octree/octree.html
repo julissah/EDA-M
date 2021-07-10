@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<title>Octree test</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	<link rel="stylesheet" href="css/octree.css">
+	<link href="css/bootstrap.min.css" rel="stylesheet"/>
+	<link href="css/font-awesome.min.css" rel="stylesheet"/>
+	<style>
+		body {
+			font-family: Monospace;
+			background-color: #f0f0f0;
+			margin: 0px;
+			overflow: hidden;
+		}
+	</style>
+</head>
+
+<body>
+	<script src="libs/p5.min.js"></script>
+
+	<script src="libs/three.min.js"></script>
+
+	<script src="octree.js"></script>
+<h2>Opciones OCTREE</h2>
+<div class="row" style="margin-bottom: 10px;">
+	<div class="form-group">
+		<label for="iniciar_con" class="col-md-1">
+			Aleatoria :
+		</label>
+		<div class="col-md-1">
+			<input type="number" name="iniciar_con" class="form-control" id="iniciar_con">
+		</div>
+		
+	</div>
+</div>
+<div class="row" style="margin-bottom: 10px;">
+	<div class="form-group">
+		<label for="POSX" class="col-md-1">
+			Posicion X :
+		</label>
+		<div class="col-md-1">
+			<input type="number" name="POSX" class="form-control" id="POSX">
+		</div>
+		
+	</div>
+</div>
+<div class="row" style="margin-bottom: 10px;">
+	<div class="form-group">
+		<label for="POSY" class="col-md-1">
+			Posicion Y :
+		</label>
+		<div class="col-md-1">
+			<input type="number" name="POSY" class="form-control" id="POSY">
+		</div>
+		
+	</div>
+</div>
+<div class="row" style="margin-bottom: 10px;">
+	<div class="form-group">
+		<label for="POSZ" class="col-md-1">
+			Posicion Z :
+		</label>
+		<div class="col-md-1">
+			<input type="number" name="POSZ" class="form-control" id="POSZ">
+		</div>
+		
+	</div>
+</div>
+
+
+
+
+
+	<script>
+		function createSphere(x, y, z) {
+			var geo = new THREE.SphereGeometry(10, 20, 20);
+			var material = new THREE.MeshPhongMaterial({ ambient: 0x0, color: 0x2471A3, specular: 0x990000, shininess: 30 });//new THREE.MeshBasicMaterial( { color:0x2C590A, wireframe: false, opacity: 0.5 } );
+			var sphere = new THREE.Mesh(geo, material);
+			sphere.position.set(x, y, z);
+			console.log(x);
+			return sphere;
+		}
+
+		function onWindowResize() {
+
+			camera.aspect = window.innerWidth / window.innerHeight;
+			camera.updateProjectionMatrix();
+
+			renderer.setSize(window.innerWidth, window.innerHeight);
+		}
+
+		var mouse2D = new THREE.Vector2();
+		var magnitude = 1000;
+		var mousedown = false;
+		function onDocumentMouseDown(event) {
+			event.preventDefault();
+			mousedown = true;
+			mouse2D = new THREE.Vector2((event.clientX / window.innerWidth) * 2 - 1, - (event.clientY / window.innerHeight) * 2 + 1);
+		}
+		function onDocumentMouseUp(event) {
+			event.preventDefault();
+			mousedown = false;
+		}
+		function onDocumentMouseMove(event) {
+			event.preventDefault();
+			if (mousedown) {
+				var currentMouse2D = new THREE.Vector2((event.clientX / window.innerWidth) * 2 - 1, - (event.clientY / window.innerHeight) * 2 + 1);
+
+				var diff = ((new THREE.Vector2()).subVectors(mouse2D, currentMouse2D)).x;
+
+				var q = new THREE.Quaternion();
+				q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), (magnitude * diff / window.innerWidth) * 2 * Math.PI);
+				camera.position.applyQuaternion(q);
+
+				camera.lookAt(target);
+
+				mouse2D = currentMouse2D;
+			}
+		}
+
+		function init(n) {
+
+			container = document.createElement('div');			
+			container.setAttribute("id", "divsito1");
+			document.body.appendChild(container);
+
+			//
+
+			scene = new THREE.Scene();
+
+			camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 10000);
+			camera.position.y = 800;
+			camera.position.x = 1400 * Math.sin(theta * Math.PI / 360);
+			camera.position.z = 1400 * Math.cos(theta * Math.PI / 360);
+			camera.useQuaternion = true;
+			camera.lookAt(target);
+
+			renderer = new THREE.WebGLRenderer();
+			renderer.setSize(window.innerWidth, window.innerHeight);
+
+			container.appendChild(renderer.domElement);
+
+
+			// OPCIONAL SI SE DESEA VER FUNCIONES FPS
+			// stats = new Stats();
+			// stats.domElement.style.position = 'absolute';
+			// stats.domElement.style.top = '0px';
+			// container.appendChild(stats.domElement);
+
+			//
+
+			octree = new Octree(null, new THREE.Vector3(0, 0, 0), dim.x, dim.y, dim.z);
+			scene.add(octree.mesh);
+
+			// Definimos el numero de elementos que ingresaran en nuestro octree 
+			for (var i = 0; i < n; i++) {
+				var sphere = createSphere((Math.random()-0.5)*dim.x*2, (Math.random()-0.5)*dim.y*2, (Math.random()-0.5)*dim.z*2);
+				//Definimos la posicion inicial de donde partiran los puntos del Octree
+				//var sphere = createSphere(500, 500, 500);
+
+				sphere.dir = new THREE.Vector3();			// for animating
+				sphere.changeFreq = Math.random() * 10000;	// for animating
+				sphere.timeAtLastChange = (new Date()).getTime();	// for animating
+
+				spheres.push(sphere);
+				octree.add(sphere);
+				scene.add(sphere);
+			}
+
+			//
+
+			// Lights
+
+			var ambientLight = new THREE.AmbientLight(0x606060);
+			scene.add(ambientLight);
+
+			var directionalLight = new THREE.DirectionalLight(0xffffff);
+			directionalLight.position.x = Math.random() - 0.5;
+			directionalLight.position.y = Math.random() - 0.5;
+			directionalLight.position.z = Math.random() - 0.5;
+			directionalLight.position.normalize();
+			scene.add(directionalLight);
+
+			var directionalLight = new THREE.DirectionalLight(0x808080);
+			directionalLight.position.x = Math.random() - 0.5;
+			directionalLight.position.y = Math.random() - 0.5;
+			directionalLight.position.z = Math.random() - 0.5;
+			directionalLight.position.normalize();
+			scene.add(directionalLight);
+
+			//
+
+			window.addEventListener('resize', onWindowResize, false);
+			document.addEventListener('mousemove', onDocumentMouseMove, false);
+			document.addEventListener('mousedown', onDocumentMouseDown, false);
+			document.addEventListener('mouseup', onDocumentMouseUp, false);
+
+			var elem = document.querySelector('canvas');			
+			elem.setAttribute("style", "width:1300px");
+
+		}
+
+
+
+	//Funcion para determinar el movimiento de las esferas
+		function animate() {
+			var now = (new Date()).getTime();
+
+			requestAnimationFrame(animate);
+
+			// spheres.forEach(function (sphere) {
+			// 	var timeSinceLastChange = now - sphere.timeAtLastChange
+			// 	if (timeSinceLastChange > sphere.changeFreq) {
+			// 		sphere.dir.set(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5);
+			// 		sphere.dir.normalize();
+			// 		sphere.timeAtLastChange = (new Date()).getTime();
+			// 	}
+			// 	var pos = (new THREE.Vector3()).addVectors(sphere.position, sphere.dir);
+
+			// 	//comprueba que el elemento sphere se encunetra contenido en el mismo cuadrantes
+			// 	if (octree.contains(pos)) {
+			// 		sphere.position = pos;
+			// 		octree.onEntityPoseChanged(sphere);
+			// 	}
+			// 	else {
+			// 		sphere.dir.set(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5);
+			// 	}
+
+			// });
+
+			octree.update();
+
+			render();
+			// stats.update();
+		}
+
+		function render() {
+			renderer.render(scene, camera);
+		}
+
+		var container, stats;
+		var camera, scene, renderer;
+		var octree;
+		var theta = 45;
+		target = new THREE.Vector3(0, 0, 0);
+
+		var dim = { x: 500, y: 500, z: 500 };
+		var spheres = new Array();
+
+		// var sph = 1
+		// function draw() {
+		// 	if (mouseIsPressed) {
+		// 		anim()
+		// 	}
+		// }
+
+
+		// function anim() {
+		// 	if (mouseIsPressed) {
+		// 		var sphere = createSphere(500, 500, 500);
+		// 		sphere.dir = new THREE.Vector3();			// for animating
+		// 		sphere.changeFreq = Math.random() * 10000;	// for animating
+		// 		sphere.timeAtLastChange = (new Date()).getTime();	// for animating
+
+		// 		spheres.push(sphere);
+		// 		octree.add(sphere);
+		// 		scene.add(sphere);
+
+		// 		octree.update
+
+		// 	}
+		// }
+
+		document.addEventListener("keyup", function (event) {
+			// if (event.keyCode === 13) {
+			// 	// var sphere = createSphere(500, 500, 500);
+			// 	var sphere = createSphere((Math.random()-0.5)*dim.x*2, (Math.random()-0.5)*dim.y*2, (Math.random()-0.5)*dim.z*2);
+			// 	sphere.dir = new THREE.Vector3();			// for animating
+			// 	sphere.changeFreq = Math.random() * 10000;	// for animating
+			// 	sphere.timeAtLastChange = (new Date()).getTime();	// for animating
+
+			// 	spheres.push(sphere);
+			// 	octree.add(sphere);
+			// 	scene.add(sphere);
+			// 	octree.update
+			// }else if (event.keyCode === 46) {
+			// 	spheres.splice(0,1);
+			// 	octree.update
+			// }
+
+			switch (event.keyCode) {
+				case 13:
+
+					var sphere = createSphere((Math.random() - 0.5) * dim.x * 2, (Math.random() - 0.5) * dim.y * 2, (Math.random() - 0.5) * dim.z * 2);
+					sphere.dir = new THREE.Vector3();			// for animating
+					sphere.changeFreq = Math.random() * 10000;	// for animating
+					sphere.timeAtLastChange = (new Date()).getTime();	// for animating
+
+					sphere.dir = new THREE.Vector3();			// for animating
+					sphere.changeFreq = Math.random() * 10000;	// for animating
+					sphere.timeAtLastChange = (new Date()).getTime();	// for animating
+					spheres.push(sphere);
+					octree.add(sphere);
+					scene.add(sphere);
+					break;
+				case 46:
+					spheres.splice(0, 1);
+					break;
+
+				case 27:
+					var dato = document.getElementById("iniciar_con").value;
+
+					var elem = document.getElementById("divsito1");
+					elem.parentNode.removeChild(elem);
+					init(dato);
+					animate();
+					document.getElementById("iniciar_con").value ="";
+					document.getElementById("POSX").value ="";
+					document.getElementById("POSY").value ="";
+					document.getElementById("POSZ").value ="";
+				break;
+				case 16:
+					var datox = document.getElementById("POSX").value;
+					var datoy = document.getElementById("POSY").value;
+					var datoz = document.getElementById("POSZ").value;
+
+					var sphere = createSphere(datox, datoy, datoz);
+					sphere.dir = new THREE.Vector3();			// for animating
+					sphere.changeFreq = Math.random() * 10000;	// for animating
+					sphere.timeAtLastChange = (new Date()).getTime();	// for animating
+
+					sphere.dir = new THREE.Vector3();			// for animating
+					sphere.changeFreq = Math.random() * 10000;	// for animating
+					sphere.timeAtLastChange = (new Date()).getTime();	// for animating
+					spheres.push(sphere);
+					octree.add(sphere);
+					scene.add(sphere);
+
+					document.getElementById("POSX").focus();
+					document.getElementById("iniciar_con").innerHTML ="";
+
+
+				break;
+			}
+			octree.update
+
+
+
+
+		});
+
+		init(0);
+		animate();
+		// anim();
+
+
+	</script>
+
+</body>
+
+</html>
