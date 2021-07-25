@@ -46,8 +46,8 @@ function Octree(parent, origin, halfwidth, halfheight, halfdepth) {
 
 Octree.prototype.constructor = Octree;
 
-Octree.prototype.entities_per_node = 1;
-Octree.prototype.max_depth = 5;
+Octree.prototype.entities_per_node = 4;
+Octree.prototype.max_depth = 3;
 
 Octree.prototype.add = function(entity) {
 
