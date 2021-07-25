@@ -1,0 +1,24 @@
+.line {
+    fill: none;
+    stroke: #ccc;
+  }
+
+  .point {
+    fill: #999;
+    stroke: #fff;
+  }
+
+  .point.scanned {
+    fill: #13CE00;
+    stroke: #999;
+  }
+
+  .point.selected {
+    fill: #FF5733;
+    stroke: #999;
+  }
+
+  .halo {
+    fill: none;
+    stroke: red;
+  }
