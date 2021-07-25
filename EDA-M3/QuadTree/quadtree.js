@@ -1,3 +1,4 @@
+
 class Point {
     constructor (x, y, userData ){
      this.x = x;
